@@ -2,12 +2,29 @@
 # -*- coding: utf-8 -*-
 """Module containing the logic for the overall neural network"""
 from math import sqrt
-from numpy import array, load, matmul, mean, ndarray, save, square
+from numpy import array, load, mean, ndarray, save, square
 
 try:
     from layer import Layer
 except ImportError:
     from neural_network.layer import Layer
+
+dot_product = lambda v1, v2: sum([x*y for x, y in zip(v1, v2)])
+
+def my_matmul(matrix_a, vector):
+    """
+    @type matrix_a: ndarray
+    @type vector: ndarray
+    """
+    _, cols_a = matrix_a.shape
+    rows_b = len(vector)
+
+    assert cols_a == rows_b, f'{cols_a} != {rows_b}'
+    dot_product_vec = lambda v1: dot_product(v1, vector)
+
+    output = array(list(map(dot_product_vec, matrix_a)))
+
+    return output
 
 class NeuralNetwork:
     def __init__(self, layer_weights=None, inputs_count=None):
@@ -83,7 +100,7 @@ class NeuralNetwork:
                 layer.error = real_output - self.feed_forward(inputs)
             else:
                 prev_layer = reversed_layers[index - 1]
-                layer.error = matmul(prev_layer.get_weights().T, prev_layer.delta)
+                layer.error = my_matmul(prev_layer.get_weights().T, prev_layer.delta)
             layer.delta = layer.error * layer.act_func_derivs()
 
     def backpropagation(self, inputs, real_output):
@@ -140,7 +157,7 @@ if __name__ == "__main__":
     x = array([[0, 0], [0, 1], [1, 0], [1, 1]])
     y = array([[0], [0], [0], [1]])
 
-    net.fit(x, y)
+    net.fit((x, y), (x,y))
 
     print(net.save('test_weights'))
 
