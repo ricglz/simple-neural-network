@@ -17,6 +17,7 @@ get_arch_numpy = lambda layer: f'weights/{get_arch_file(layer)}.npy'
 get_arch_png = lambda layer: f'errors/{get_arch_file(layer)}.png'
 
 training_dataset = split_dataset(array(read_csv('./training_data.csv', header=None)))
+validation_dataset = split_dataset(array(read_csv('./validation_data.csv', header=None)))
 
 def training(net):
     """
@@ -24,7 +25,6 @@ def training(net):
 
     @type net: NeuralNetwork
     """
-    validation_dataset = split_dataset(array(read_csv('./validation_data.csv', header=None)))
 
     rmses, val_rmses = [], []
     try:
@@ -32,23 +32,24 @@ def training(net):
         rmses += cur_rmses[1:]
         val_rmses += cur_val_rmses[1:]
 
+        # incomplete_trainings = 0
         # while True:
         #     epochs = 10
         #     print(f'Learning rate: {net.learning_rate}')
-
         #     cur_rmses, cur_val_rmses = net.fit(training_dataset, validation_dataset, epochs)
         #     rmses += cur_rmses[1:]
         #     val_rmses += cur_val_rmses[1:]
-
         #     if len(cur_rmses) < epochs + 1:
         #         net.learning_rate /= 2
+        #         incomplete_trainings += 1
         #     else:
         #         net.learning_rate *= 1.1
+        #         incomplete_trainings = 0
 
     except KeyboardInterrupt:
         print()
 
-    print(f'Final RMSE: {net.calculate_rmse(training_dataset):.4%}')
+    print(f'Final RMSE: {rmses[-1]:.4%}, VAL RMSE: {val_rmses[-1]:.4%}')
 
     return rmses, val_rmses
 
@@ -66,7 +67,7 @@ def create_network_permutations(layer_count, networks=None, current_layers=None)
     if current_layers is None:
         current_layers = []
         networks = []
-    for value in range(3, 11):
+    for value in range(5, 11):
         new_layers = current_layers + [value]
         if layer_count == 1:
             # print('Creating new network: ', new_layers)
@@ -176,7 +177,7 @@ def main(pool):
     # net = create_network_from_filename(get_arch_numpy(4))
 
     best_networks = []
-    for index in range(2, 5):
+    for index in range(3, 5):
         # net = create_network_from_filename(get_arch_numpy(index))
         net = decide_layer_config(index, pool)
         save_best_layer(net)
