@@ -92,6 +92,19 @@ def save_best_layer(net, training_dataset):
         print('New network is a new architecture')
         net.save(architecture_filename)
 
+def decide_best_from_array(networks, training_dataset):
+    best_network = networks[0]
+    best_rmse = best_network.calculate_rmse(training_dataset)
+    print(f'{best_network}\nRMSE {best_rmse:.4%}\n')
+    for index in range(1, len(networks)):
+        current_network = networks[index]
+        current_rmse = current_network.calculate_rmse(training_dataset)
+        print(f'{current_network}\nRMSE {current_rmse:.4%}\n')
+        if best_rmse > current_rmse:
+            best_network = current_network
+            best_rmse = current_rmse
+    return best_network
+
 def decide_best_architecture(training_dataset):
     """
     Decides which is the best network based on having the lowest rmse
@@ -101,17 +114,7 @@ def decide_best_architecture(training_dataset):
     max_current_layer = 4
     filenames = list(map(get_arch_numpy, list(range(1, max_current_layer + 1))))
     networks = list(map(create_network, filenames))
-
-    best_network = networks[0]
-    best_rmse = best_network.calculate_rmse(training_dataset)
-    print(f'{best_network}\nRMSE {best_rmse:.4%}\n')
-    for index in range(1, max_current_layer):
-        current_network = networks[index]
-        current_rmse = current_network.calculate_rmse(training_dataset)
-        print(f'{current_network}\nRMSE {current_rmse:.4%}\n')
-        if best_rmse > current_rmse:
-            best_network = current_network
-            best_rmse = current_rmse
+    best_network = decide_best_from_array(networks, training_dataset)
 
     print(f'{best_network}\nRMSE {best_rmse:.4%}\n')
     best_network.save('model_weights.npy')
