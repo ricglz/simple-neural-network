@@ -50,7 +50,7 @@ class Layer:
         get_derivs = lambda neuron: neuron.deriv_sigmoid()
         return self.__map_neurons__(get_derivs)
 
-    def update_weights(self, inputs, learning_rate, momentum=1):
+    def update_weights(self, inputs, learning_rate, momentum=.01):
         for index, neuron in enumerate(self.neurons):
             momentum_modifier = self.prev_delta[index] * momentum
             actual_delta = self.delta[index] * inputs * learning_rate + momentum_modifier
