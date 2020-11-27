@@ -173,13 +173,13 @@ def main():
 
     training_dataset = split_dataset(array(read_csv('./training_data.csv', header=None)))
 
-    decide_layer_config(1, training_dataset)
 
-    # for index in range(1, 5):
+    for index in range(1, 5):
     #     net = create_network_from_filename(get_arch_numpy(index))
-    #     print(net)
-    #     training(net, training_dataset)
-    #     save_best_layer(net, training_dataset)
+        net = decide_layer_config(1, training_dataset)
+        print(net)
+        training(net, training_dataset)
+        save_best_layer(net, training_dataset)
 
     # print('Current architecture\n', net)
 
@@ -188,7 +188,7 @@ def main():
 
     # save_best_layer(net, training_dataset)
 
-    # decide_best_architecture(training_dataset)
+    decide_best_architecture(training_dataset)
 
 if __name__ == "__main__":
     main()
