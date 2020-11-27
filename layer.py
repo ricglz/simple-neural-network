@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Module containing the logic for layers"""
-from numpy import array
+from numpy import array, zeros
 
 try:
     from neuron import Neuron
@@ -22,6 +22,7 @@ class Layer:
         if neuron_weights is not None:
             create_neuron = lambda index: Neuron(inputs_count, neuron_weights[index])
         self.neurons = list(map(create_neuron, range(neurons_count)))
+        self.prev_delta = zeros((neurons_count, inputs_count))
 
     def __str__(self):
         return f'Inputs: {self.inputs_count}, Neurons: {len(self.neurons)}'
@@ -49,9 +50,12 @@ class Layer:
         get_derivs = lambda neuron: neuron.deriv_sigmoid()
         return self.__map_neurons__(get_derivs)
 
-    def update_weights(self, inputs, learning_rate=0.13):
+    def update_weights(self, inputs, learning_rate, momentum=1):
         for index, neuron in enumerate(self.neurons):
-            neuron.weights += self.delta[index] * inputs * learning_rate
+            momentum_modifier = self.prev_delta[index] * momentum
+            actual_delta = self.delta[index] * inputs * learning_rate + momentum_modifier
+            self.prev_delta[index] = actual_delta
+            neuron.weights += actual_delta
 
 if __name__ == "__main__":
     layer = Layer(3, 2)

@@ -75,7 +75,7 @@ def create_network_permutations(layer_count, networks=None, current_layers=None)
 
 def train_layer_networks(networks, training_dataset):
     def train(network):
-        print('Training:\n', network)
+        print(f'Training:\n{network}')
         rmses, val_rmses = training(network, training_dataset)
         return rmses[-1] + val_rmses[-1] / 2
     return array(list(map(train, networks)))
@@ -85,6 +85,7 @@ def decide_layer_config(layer_count, training_dataset):
     final_rmses = train_layer_networks(networks, training_dataset)
     best_network_index = argmin(final_rmses)
     best_network = networks[best_network_index]
+    print(f'Best {layer_count} layers network\n{best_network}')
     return best_network
 
 def plot(rmses, val_rmses, h_layers):
@@ -176,8 +177,7 @@ def main():
 
     for index in range(1, 5):
     #     net = create_network_from_filename(get_arch_numpy(index))
-        net = decide_layer_config(1, training_dataset)
-        print(net)
+        net = decide_layer_config(index, training_dataset)
         training(net, training_dataset)
         save_best_layer(net, training_dataset)
 
