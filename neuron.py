@@ -8,8 +8,8 @@ from numpy.random import rand
 
 def sigmoid(value):
     """Activation function, in this case the sigmoid function"""
-    return 1 / (1 + exp(-value))
-
+    return 1 / (1 + exp(-value)) if value >= 0 else \
+            1 - 1/(1 + exp(value))
 
 class Neuron:
     """
