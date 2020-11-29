@@ -15,13 +15,16 @@ split_dataset = lambda dataset: [dataset[:, [0, 1]], dataset[:, [2, 3]]]
 get_arch_file = lambda layer: f'model_weights_{layer}_h_layer'
 get_arch_numpy = lambda layer: f'weights/{get_arch_file(layer)}.npy'
 get_arch_png = lambda layer: f'errors/{get_arch_file(layer)}.png'
+average_error = lambda a, b: (a + b) / 2
 
 training_dataset = split_dataset(array(read_csv('./training_data.csv', header=None)))
 validation_dataset = split_dataset(array(read_csv('./validation_data.csv', header=None)))
+pool = None
 
 def training(net):
     """
-    Trains the neural network
+    Trains a neural network and return the rmse of training
+    and validation
 
     @type net: NeuralNetwork
     """
@@ -33,7 +36,7 @@ def training(net):
         val_rmses += cur_val_rmses[1:]
 
         # incomplete_trainings = 0
-        # while True:
+        # while incomplete_trainings < 3:
         #     epochs = 10
         #     print(f'Learning rate: {net.learning_rate}')
         #     cur_rmses, cur_val_rmses = net.fit(training_dataset, validation_dataset, epochs)
@@ -54,6 +57,7 @@ def training(net):
     return rmses, val_rmses
 
 def create_network_from_layers(layers):
+    """Given an array of the neurons per layer, create a neural network"""
     assert len(layers) >= 1, 'Layers array is empty :('
 
     network = NeuralNetwork()
@@ -64,6 +68,7 @@ def create_network_from_layers(layers):
     return network
 
 def create_network_permutations(layer_count, networks=None, current_layers=None):
+    """Recursive function to create all the permutations of networks possible"""
     if current_layers is None:
         current_layers = []
         networks = []
@@ -77,19 +82,41 @@ def create_network_permutations(layer_count, networks=None, current_layers=None)
             create_network_permutations(layer_count - 1, networks, new_layers)
     return networks
 
-def train_layer(network):
-    print(f'Training:\n{network}')
+def train_and_get_error(network):
+    """
+    @type network: NeuralNetwork
+    """
     rmses, val_rmses = training(network)
-    return (rmses[-1] + val_rmses[-1]) / 2
+    return average_error(rmses[-1], val_rmses[-1])
 
-def train_layer_networks(networks, pool):
-    return array(pool.map(train_layer, networks))
+def neural_network_avg_error(network):
+    """Returns the average error of the neural network"""
+    rmse = network.calculate_rmse(training_dataset)
+    val_rmse = network.calculate_rmse(validation_dataset)
+    return average_error(rmse, val_rmse)
 
-def decide_layer_config(layer_count, pool):
+def train_or_get_errors(networks, train):
+    """Train or get errors of the networks in a concurrent way"""
+    map_func = train_and_get_error if train else neural_network_avg_error
+    return array(pool.map(map_func, networks))
+
+def decide_best_from_array(networks, train=False):
+    """
+    Based on a list of networks decide which is the best,
+    being classified as the best the one with the lowest
+    rmse
+    """
+    average_rmses = train_or_get_errors(networks, train)
+    index = argmin(average_rmses)
+    return networks[index], average_rmses[index]
+
+def decide_layer_config(layer_count):
+    """
+    Decide the best permutation of the network based on the
+    amount of hidden layers
+    """
     networks = create_network_permutations(layer_count)
-    final_rmses = train_layer_networks(networks, pool)
-    best_network_index = argmin(final_rmses)
-    best_network = networks[best_network_index]
+    best_network, _ = decide_best_from_array(networks)
     print(f'Best {layer_count} layers network\n{best_network}')
     return best_network
 
@@ -141,24 +168,6 @@ def save_best_layer(net):
         print('New network is a new architecture')
         net.save(architecture_filename)
 
-def decide_best_from_array(networks):
-    """
-    Based on a list of networks decide which is the best,
-    being classified as the best the one with the lowest
-    rmse
-    """
-    best_network = networks[0]
-    best_rmse = best_network.calculate_rmse(training_dataset)
-    print(f'{best_network}\nRMSE {best_rmse:.4%}\n')
-    for index in range(1, len(networks)):
-        current_network = networks[index]
-        current_rmse = current_network.calculate_rmse(training_dataset)
-        print(f'{current_network}\nRMSE {current_rmse:.4%}\n')
-        if best_rmse > current_rmse:
-            best_network = current_network
-            best_rmse = current_rmse
-    return best_network, best_rmse
-
 def decide_best_architecture():
     """
     Decides which is the best network based on having the lowest rmse
@@ -167,19 +176,19 @@ def decide_best_architecture():
     max_current_layer = 4
     filenames = list(map(get_arch_numpy, list(range(1, max_current_layer + 1))))
     networks = list(map(create_network_from_filename, filenames))
-    best_network, best_rmse = decide_best_from_array(networks)
+    best_network, best_rmse = decide_best_from_array(networks, train=False)
 
     print(f'{best_network}\nRMSE {best_rmse:.4%}\n')
     best_network.save('model_weights.npy')
 
-def main(pool):
+def main():
     """Main procedure for building NN"""
     # net = create_network_from_filename(get_arch_numpy(4))
 
     best_networks = []
     for index in range(3, 5):
         # net = create_network_from_filename(get_arch_numpy(index))
-        net = decide_layer_config(index, pool)
+        net = decide_layer_config(index)
         save_best_layer(net)
         best_networks.append(net)
 
@@ -196,4 +205,5 @@ def main(pool):
     decide_best_architecture()
 
 if __name__ == "__main__":
-    main(Pool())
+    pool = Pool()
+    main()
