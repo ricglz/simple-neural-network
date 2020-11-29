@@ -185,15 +185,21 @@ def main():
     """Main procedure for building NN"""
     # net = create_network_from_filename(get_arch_numpy(4))
 
-    best_networks = []
-    for index in range(3, 5):
-        # net = create_network_from_filename(get_arch_numpy(index))
-        net = decide_layer_config(index)
-        save_best_layer(net)
-        best_networks.append(net)
+    best_layer_architecture = {
+        1: [10],
+        2: [9, 6],
+        3: [6, 8, 10],
+        4: [10, 5, 10, 5]
+    }
 
-    for net in best_networks:
-        print(net)
+    networks = []
+    for index in range(1, 5):
+        layer_neurons = best_layer_architecture[index]
+        net = create_network_from_layers(layer_neurons)
+        networks.append(net)
+    train_or_get_errors(networks, train=True)
+    for network in networks:
+        save_best_layer(network)
 
     # print('Current architecture\n', net)
 
