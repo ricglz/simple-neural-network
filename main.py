@@ -5,7 +5,7 @@ Main module to train the network for the game
 """
 from multiprocessing import Pool
 
-from numpy import argmin, array, load
+from numpy import argmin, array
 from pandas import read_csv
 import matplotlib.pyplot as plt
 
@@ -31,23 +31,23 @@ def training(net):
 
     rmses, val_rmses = [], []
     try:
-        cur_rmses, cur_val_rmses = net.fit(training_dataset, validation_dataset, 20)
-        rmses += cur_rmses[1:]
-        val_rmses += cur_val_rmses[1:]
+        # cur_rmses, cur_val_rmses = net.fit(training_dataset, validation_dataset, 20)
+        # rmses += cur_rmses[1:]
+        # val_rmses += cur_val_rmses[1:]
 
-        # incomplete_trainings = 0
-        # while incomplete_trainings < 3:
-        #     epochs = 10
-        #     print(f'Learning rate: {net.learning_rate}')
-        #     cur_rmses, cur_val_rmses = net.fit(training_dataset, validation_dataset, epochs)
-        #     rmses += cur_rmses[1:]
-        #     val_rmses += cur_val_rmses[1:]
-        #     if len(cur_rmses) < epochs + 1:
-        #         net.learning_rate /= 2
-        #         incomplete_trainings += 1
-        #     else:
-        #         net.learning_rate *= 1.1
-        #         incomplete_trainings = 0
+        incomplete_trainings = 0
+        while incomplete_trainings < 6:
+            epochs = 15
+            print(f'Learning rate: {net.learning_rate}')
+            cur_rmses, cur_val_rmses = net.fit(training_dataset, validation_dataset, epochs)
+            rmses += cur_rmses[1:]
+            val_rmses += cur_val_rmses[1:]
+            if len(cur_rmses) < epochs + 1:
+                net.learning_rate /= 2
+                incomplete_trainings += 1
+            else:
+                net.learning_rate *= 1.1
+                incomplete_trainings = 0
 
     except KeyboardInterrupt:
         print()
@@ -98,7 +98,8 @@ def neural_network_avg_error(network):
 def train_or_get_errors(networks, train):
     """Train or get errors of the networks in a concurrent way"""
     map_func = train_and_get_error if train else neural_network_avg_error
-    return array(pool.map(map_func, networks))
+    return array([map_func(network) for network in networks])
+    # return array(pool.map(map_func, networks))
 
 def decide_best_from_array(networks, train=False):
     """
@@ -138,15 +139,6 @@ def plot(rmses, val_rmses, h_layers):
 
     plt.show()
 
-def create_network_from_filename(filename):
-    """
-    Create network based on the weights stored in filename
-
-    @type filename: str
-    """
-    weights = load(filename, allow_pickle=True)
-    return NeuralNetwork(weights, 2)
-
 def save_best_layer(net):
     """
     Saves the best neural network of this architecture based on the layer
@@ -156,9 +148,10 @@ def save_best_layer(net):
     architecture_filename = get_arch_numpy(len(net.layers) - 1)
     print(f'Saving {architecture_filename}')
     try:
-        current_best_network = create_network_from_filename(architecture_filename)
+        current_best_network = NeuralNetwork.game_neural_network(architecture_filename)
         net_rmse = net.calculate_rmse(training_dataset)
         best_rmse = current_best_network.calculate_rmse(training_dataset)
+        print(f'Current best error: {best_rmse:.4%}, Network error: {net_rmse:.4%}')
         if net_rmse < best_rmse:
             print('New network is better than previous')
             net.save(architecture_filename)
@@ -175,7 +168,7 @@ def decide_best_architecture():
     print('Deciding best architecture\n')
     max_current_layer = 4
     filenames = list(map(get_arch_numpy, list(range(1, max_current_layer + 1))))
-    networks = list(map(create_network_from_filename, filenames))
+    networks = list(map(NeuralNetwork.game_neural_network, filenames))
     best_network, best_rmse = decide_best_from_array(networks, train=False)
 
     print(f'{best_network}\nRMSE {best_rmse:.4%}\n')
@@ -183,20 +176,19 @@ def decide_best_architecture():
 
 def main():
     """Main procedure for building NN"""
-    # net = create_network_from_filename(get_arch_numpy(4))
+    # net = NeuralNetwork.game_neural_network(get_arch_numpy(4))
 
-    best_layer_architecture = {
-        1: [10],
-        2: [9, 6],
-        3: [6, 8, 10],
-        4: [10, 5, 10, 5]
-    }
+    networks = [NeuralNetwork.game_neural_network(get_arch_numpy(index)) for index in range(1, 5)]
 
-    networks = []
-    for index in range(1, 5):
-        layer_neurons = best_layer_architecture[index]
-        net = create_network_from_layers(layer_neurons)
-        networks.append(net)
+    # best_layer_architecture = {
+    #     1: [10],
+    #     2: [9, 6],
+    #     3: [6, 8, 10],
+    #     4: [10, 5, 10, 5]
+    # }
+    # layer_neurons = [best_layer_architecture[index] for index in range(1, 5)]
+    # networks = list(map(create_network_from_layers, layer_neurons))
+
     train_or_get_errors(networks, train=True)
     for network in networks:
         save_best_layer(network)

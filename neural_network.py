@@ -43,8 +43,7 @@ class NeuralNetwork:
     def game_neural_network(filepath='model_weights.npy'):
         """Create the neural network based on the data and inputs for the project"""
         loaded_weights = load(filepath, allow_pickle=True)
-        network = NeuralNetwork(loaded_weights, inputs_count=2)
-        return network
+        return NeuralNetwork(loaded_weights, inputs_count=2)
 
     def add_layer(self, neurons_count, inputs_count=None, layer_weights=None):
         """Add a new layer to the NeuralNetwork"""
