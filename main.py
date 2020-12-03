@@ -178,7 +178,7 @@ def main():
     """Main procedure for building NN"""
     # net = NeuralNetwork.game_neural_network(get_arch_numpy(4))
 
-    networks = [NeuralNetwork.game_neural_network(get_arch_numpy(index)) for index in range(1, 5)]
+    # networks = [NeuralNetwork.game_neural_network(get_arch_numpy(index)) for index in range(1, 5)]
 
     # best_layer_architecture = {
     #     1: [10],
@@ -189,9 +189,9 @@ def main():
     # layer_neurons = [best_layer_architecture[index] for index in range(1, 5)]
     # networks = list(map(create_network_from_layers, layer_neurons))
 
-    train_or_get_errors(networks, train=True)
-    for network in networks:
-        save_best_layer(network)
+    # train_or_get_errors(networks, train=True)
+    # for network in networks:
+    #     save_best_layer(network)
 
     # print('Current architecture\n', net)
 
