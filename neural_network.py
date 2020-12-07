@@ -27,10 +27,12 @@ def my_matmul(matrix_a, vector):
     return output
 
 class NeuralNetwork:
+    layers = []
+    learning_rate = 0.6493
+    momentum_rate = 0.092
+    previous_size = None
+
     def __init__(self, layer_weights=None, inputs_count=None):
-        self.layers = []
-        self.previous_size = None
-        self.learning_rate = 5
         if layer_weights is not None:
             self.__initialize_layers__(layer_weights, inputs_count)
 
@@ -107,7 +109,7 @@ class NeuralNetwork:
         self.__calculate_errors__(inputs, real_output)
         for index, layer in enumerate(self.layers):
             actual_inputs = inputs if index == 0 else self.layers[index - 1].output
-            layer.update_weights(actual_inputs, self.learning_rate)
+            layer.update_weights(actual_inputs, self.learning_rate, self.momentum_rate)
 
     def __run_epoch__(self, training_data, validation_data, rmses, val_rmses):
         training_x, training_y = training_data

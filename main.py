@@ -5,7 +5,7 @@ Main module to train the network for the game
 """
 from multiprocessing import Pool
 
-from numpy import argmin, array
+from numpy import argmin, array, concatenate, random
 from pandas import read_csv
 import matplotlib.pyplot as plt
 
@@ -20,6 +20,12 @@ average_error = lambda a, b: (a + b) / 2
 training_dataset = split_dataset(array(read_csv('./training_data.csv', header=None)))
 validation_dataset = split_dataset(array(read_csv('./validation_data.csv', header=None)))
 pool = None
+best_layer_architecture = {
+    1: [10],
+    2: [9, 6],
+    3: [6, 8, 10],
+    4: [10, 5, 10, 5]
+}
 
 def training(net):
     """
@@ -31,23 +37,10 @@ def training(net):
 
     rmses, val_rmses = [], []
     try:
-        # cur_rmses, cur_val_rmses = net.fit(training_dataset, validation_dataset, 20)
-        # rmses += cur_rmses[1:]
-        # val_rmses += cur_val_rmses[1:]
 
-        incomplete_trainings = 0
-        while incomplete_trainings < 6:
-            epochs = 15
-            print(f'Learning rate: {net.learning_rate}')
-            cur_rmses, cur_val_rmses = net.fit(training_dataset, validation_dataset, epochs)
-            rmses += cur_rmses[1:]
-            val_rmses += cur_val_rmses[1:]
-            if len(cur_rmses) < epochs + 1:
-                net.learning_rate /= 2
-                incomplete_trainings += 1
-            else:
-                net.learning_rate *= 1.1
-                incomplete_trainings = 0
+        cur_rmses, cur_val_rmses = net.fit(training_dataset, validation_dataset, 100)
+        rmses += cur_rmses[1:]
+        val_rmses += cur_val_rmses[1:]
 
     except KeyboardInterrupt:
         print()
@@ -87,6 +80,7 @@ def train_and_get_error(network):
     @type network: NeuralNetwork
     """
     rmses, val_rmses = training(network)
+    plot_layer_errors(rmses, val_rmses, len(network.layers) - 1)
     return average_error(rmses[-1], val_rmses[-1])
 
 def neural_network_avg_error(network):
@@ -99,7 +93,6 @@ def train_or_get_errors(networks, train):
     """Train or get errors of the networks in a concurrent way"""
     map_func = train_and_get_error if train else neural_network_avg_error
     return array([map_func(network) for network in networks])
-    # return array(pool.map(map_func, networks))
 
 def decide_best_from_array(networks, train=False):
     """
@@ -121,23 +114,33 @@ def decide_layer_config(layer_count):
     print(f'Best {layer_count} layers network\n{best_network}')
     return best_network
 
-def plot(rmses, val_rmses, h_layers):
+def plot_layer_errors(rmses, val_rmses, h_layers):
     """
     Allows to plot the rmse of the training and validation dataset
+    And says based on the amount of layers
 
     @type rmses: list
     @type val_rmses: list
     @type h_layers: number
     """
+    image_name = get_arch_png(h_layers)
+    plot(rmses, val_rmses, image_name)
+
+def plot(rmses, val_rmses, image_name, show=True):
+    """
+    Allows to plot the rmse of the training and validation dataset
+
+    @type rmses: list
+    @type val_rmses: list
+    @type image_name: str
+    """
     plt.plot(rmses, label='Training dataset RMSE')
     plt.plot(val_rmses, label='Validation dataset RMSE')
-
     plt.legend(loc='upper left')
-
-    image_name = get_arch_png(h_layers)
     plt.savefig(image_name)
-
-    plt.show()
+    if show:
+        plt.show()
+    plt.close()
 
 def save_best_layer(net):
     """
@@ -174,33 +177,52 @@ def decide_best_architecture():
     print(f'{best_network}\nRMSE {best_rmse:.4%}\n')
     best_network.save('model_weights.npy')
 
+def plot_tested_rates(rates_and_errors, title, filename):
+    for rate, errors in rates_and_errors:
+        plt.plot(errors, label=f'RMSE - {rate:.4f}')
+    plt.legend(loc='upper right')
+    plt.title(title)
+    plt.savefig(filename)
+    plt.close()
+
+def test_learning_rate():
+    learning_rates = random.default_rng().uniform(0.5493, 0.7493, 5)
+    learning_rates = concatenate((learning_rates, array([0.6493])))
+    layer_neurons = best_layer_architecture[4]
+    rates_and_errors = []
+    for learning_rate in learning_rates:
+        print(f'Checking {learning_rate} learning rate')
+        network = create_network_from_layers(layer_neurons)
+        network.learning_rate = learning_rate
+        rmses, _ = training(network)
+        rates_and_errors.append((learning_rate, rmses))
+    filename = 'errors/learning-rate-errors.png'
+    plot_tested_rates(rates_and_errors, 'Learning Rate Error', filename)
+
+def test_momentum_rate():
+    momentum_rates = random.default_rng().uniform(0.082, 0.102, 5)
+    momentum_rates = concatenate((momentum_rates, array([0.092])))
+    layer_neurons = best_layer_architecture[4]
+    rates_and_errors = []
+    for momentum_rate in momentum_rates:
+        print(f'Checking {momentum_rate} momentum rate')
+        network = create_network_from_layers(layer_neurons)
+        network.momentum_rate = momentum_rate
+        rmses, _ = training(network)
+        rates_and_errors.append((momentum_rate, rmses))
+    filename = 'errors/momentum-rates-error.png'
+    plot_tested_rates(rates_and_errors, 'Momentum Rate Error', filename)
+
 def main():
     """Main procedure for building NN"""
-    # net = NeuralNetwork.game_neural_network(get_arch_numpy(4))
+    # net = create_network_from_layers(best_layer_architecture[4])
+    # training(net)
 
-    # networks = [NeuralNetwork.game_neural_network(get_arch_numpy(index)) for index in range(1, 5)]
+    test_momentum_rate()
 
-    # best_layer_architecture = {
-    #     1: [10],
-    #     2: [9, 6],
-    #     3: [6, 8, 10],
-    #     4: [10, 5, 10, 5]
-    # }
-    # layer_neurons = [best_layer_architecture[index] for index in range(1, 5)]
-    # networks = list(map(create_network_from_layers, layer_neurons))
-
-    # train_or_get_errors(networks, train=True)
-    # for network in networks:
-    #     save_best_layer(network)
-
-    # print('Current architecture\n', net)
-
-    # rmses, val_rmses = training(net)
-    # plot(rmses, val_rmses, len(net.layers) - 1)
-
-    # save_best_layer(net)
-
-    decide_best_architecture()
+    # net = NeuralNetwork.game_neural_network()
+    # print(f'Training error {net.calculate_rmse(training_dataset):.4%}')
+    # print(f'Validation error {net.calculate_rmse(validation_dataset):.4%}')
 
 if __name__ == "__main__":
     pool = Pool()
