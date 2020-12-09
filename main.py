@@ -200,8 +200,8 @@ def test_learning_rate():
     plot_tested_rates(rates_and_errors, 'Learning Rate Error', filename)
 
 def test_momentum_rate():
-    momentum_rates = random.default_rng().uniform(0.082, 0.102, 5)
-    momentum_rates = concatenate((momentum_rates, array([0.092])))
+    momentum_rates = random.default_rng().uniform(0.07837, 0.09837, 5)
+    momentum_rates = concatenate((momentum_rates, array([0.08837])))
     layer_neurons = best_layer_architecture[4]
     rates_and_errors = []
     for momentum_rate in momentum_rates:

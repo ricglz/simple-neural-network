@@ -29,7 +29,7 @@ def my_matmul(matrix_a, vector):
 class NeuralNetwork:
     layers = []
     learning_rate = 0.6493
-    momentum_rate = 0.092
+    momentum_rate = 0.08837
     previous_size = None
 
     def __init__(self, layer_weights=None, inputs_count=None):
